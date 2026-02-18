@@ -1,9 +1,3 @@
-Filters & Data Exploration (Page 1)
-
-SQL Query Runner (Page 2)
-
-Top 3 Crypto Analysis (Page 3)
-
 import streamlit as st
 import pandas as pd
 import mysql.connector
@@ -34,17 +28,19 @@ conn = mysql.connector.connect(
 tab1, tab2, tab3 = st.tabs(["Market Snapshot", "SQL Query Runner", "Top 3 Crypto Analysis"])
 
 # -------------------------
-# Page 1: Market Snapshot
+# Page 1: Market Snapshot / Filters & Data Exploration
 # -------------------------
 with tab1:
     st.header("📈 Market Snapshot")
     market = st.selectbox("Select Market", ["Cryptocurrency", "Oil Prices", "Stock Index"])
 
     if market == "Cryptocurrency":
+        # Get list of coins
         coin_query = "SELECT DISTINCT name FROM cryptocurrencies"
         coins = pd.read_sql(coin_query, conn)["name"].tolist()
         selected_coin = st.selectbox("Select Coin", coins)
 
+        # Fetch coin price data
         query = f"""
             SELECT date, current_price
             FROM cryptocurrencies
@@ -52,6 +48,7 @@ with tab1:
             ORDER BY date
         """
         df = pd.read_sql(query, conn)
+
         st.subheader(f"{selected_coin} Price Trend")
         fig = px.line(df, x="date", y="current_price", title=f"{selected_coin} Daily Price")
         st.plotly_chart(fig, use_container_width=True)
@@ -59,15 +56,18 @@ with tab1:
     elif market == "Oil Prices":
         query = "SELECT date, price_usd FROM oil_prices ORDER BY date"
         df = pd.read_sql(query, conn)
+
         st.subheader("WTI Crude Oil Price Trend")
         fig = px.line(df, x="date", y="price_usd", title="Oil Prices (USD)")
         st.plotly_chart(fig, use_container_width=True)
 
     elif market == "Stock Index":
+        # Get list of stock tickers
         ticker_query = "SELECT DISTINCT ticker FROM stock_prices"
         tickers = pd.read_sql(ticker_query, conn)["ticker"].tolist()
         selected_ticker = st.selectbox("Select Stock Index", tickers)
 
+        # Fetch stock closing price
         query = f"""
             SELECT date, close
             FROM stock_prices
@@ -75,6 +75,7 @@ with tab1:
             ORDER BY date
         """
         df = pd.read_sql(query, conn)
+
         st.subheader(f"{selected_ticker} Closing Price Trend")
         fig = px.line(df, x="date", y="close", title=f"{selected_ticker} Daily Closing Price")
         st.plotly_chart(fig, use_container_width=True)
