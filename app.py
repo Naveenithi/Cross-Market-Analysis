@@ -25,7 +25,7 @@ def load_csv(file_path, usecols=None, rename_map=None):
 crypto_meta_df = load_csv("cryptocurrencies.csv")
 crypto_prices_df = load_csv("crypto_prices.csv")
 oil_df = load_csv("oil_prices.csv")
-stocks_df = load_csv("stocks.csv")
+stocks_df = load_csv("stock_prices.csv")
 
 # Merge crypto prices with metadata
 if not crypto_prices_df.empty and not crypto_meta_df.empty:
