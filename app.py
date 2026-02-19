@@ -23,22 +23,26 @@ conn = mysql.connector.connect(
 )
 
 # -------------------------
-# Tabs for pages
+# Sidebar Navigation (Pages)
 # -------------------------
-tab1, tab2, tab3 = st.tabs(["Market Snapshot", "SQL Query Runner", "Top 3 Crypto Analysis"])
+page = st.sidebar.radio(
+    "Select Page",
+    ["Filters & Data Exploration", "SQL Query Runner", "Top 3 Crypto Analysis"]
+)
 
 # -------------------------
-# Page 1: Market Snapshot / Filters & Data Exploration
+# Page 1: Filters & Data Exploration
 # -------------------------
-with tab1:
-    st.header("📈 Market Snapshot")
+if page == "Filters & Data Exploration":
+    st.header("📈 Filters & Data Exploration")
+
     market = st.selectbox("Select Market", ["Cryptocurrency", "Oil Prices", "Stock Index"])
 
     if market == "Cryptocurrency":
-        # Get list of coins
-        coin_query = "SELECT DISTINCT name FROM cryptocurrencies"
-        coins = pd.read_sql(coin_query, conn)["name"].tolist()
-        selected_coin = st.selectbox("Select Coin", coins)
+        # Only Top 3 coins by market_cap
+        top3_query = "SELECT name FROM cryptocurrencies ORDER BY market_cap DESC LIMIT 3"
+        top3_coins = pd.read_sql(top3_query, conn)["name"].tolist()
+        selected_coin = st.selectbox("Select Coin (Top 3)", top3_coins)
 
         # Fetch coin price data
         query = f"""
@@ -62,12 +66,10 @@ with tab1:
         st.plotly_chart(fig, use_container_width=True)
 
     elif market == "Stock Index":
-        # Get list of stock tickers
         ticker_query = "SELECT DISTINCT ticker FROM stock_prices"
         tickers = pd.read_sql(ticker_query, conn)["ticker"].tolist()
         selected_ticker = st.selectbox("Select Stock Index", tickers)
 
-        # Fetch stock closing price
         query = f"""
             SELECT date, close
             FROM stock_prices
@@ -83,12 +85,20 @@ with tab1:
 # -------------------------
 # Page 2: SQL Query Runner
 # -------------------------
-with tab2:
+elif page == "SQL Query Runner":
     st.header("💻 SQL Query Runner")
+
     queries = {
         "Top 3 Cryptocurrencies by Market Cap": "SELECT name, market_cap FROM cryptocurrencies ORDER BY market_cap DESC LIMIT 3",
+        "Coins near ATH": "SELECT name, current_price, ath FROM cryptocurrencies WHERE current_price >= ath * 0.9",
+        "Average Market Cap Rank (Volume > $1B)": "SELECT AVG(market_cap_rank) AS avg_rank FROM cryptocurrencies WHERE total_volume > 1000000000",
+        "Most Recently Updated Coin": "SELECT name, date FROM cryptocurrencies ORDER BY date DESC LIMIT 1",
+        "Highest Bitcoin Price (Last 365 Days)": "SELECT MAX(current_price) AS max_price FROM cryptocurrencies WHERE name='Bitcoin'",
+        "Average Ethereum Price (Last 365 Days)": "SELECT AVG(current_price) AS avg_price FROM cryptocurrencies WHERE name='Ethereum'",
+        "Oil Highest Price (Last 5 Years)": "SELECT MAX(price_usd) AS max_price FROM oil_prices",
         "Average Oil Price per Year": "SELECT YEAR(date) AS yr, AVG(price_usd) AS avg_price FROM oil_prices GROUP BY yr ORDER BY yr",
-        "Highest Closing Price of NASDAQ": "SELECT MAX(close) AS max_close FROM stock_prices WHERE ticker='^IXIC'"
+        "Highest NASDAQ Close": "SELECT MAX(close) AS max_close FROM stock_prices WHERE ticker='^IXIC'",
+        "Top 5 S&P 500 High Difference Days": "SELECT date, (high-low) AS diff FROM stock_prices WHERE ticker='^GSPC' ORDER BY diff DESC LIMIT 5"
     }
 
     selected_query = st.selectbox("Select a Query", list(queries.keys()))
@@ -99,10 +109,9 @@ with tab2:
 # -------------------------
 # Page 3: Top 3 Crypto Analysis
 # -------------------------
-with tab3:
+elif page == "Top 3 Crypto Analysis":
     st.header("🔝 Top 3 Cryptocurrencies Analysis")
 
-    # Get top 3 coins by market cap
     top3_query = "SELECT name FROM cryptocurrencies ORDER BY market_cap DESC LIMIT 3"
     top3_coins = pd.read_sql(top3_query, conn)["name"].tolist()
     selected_coin = st.selectbox("Select Top Coin", top3_coins)
