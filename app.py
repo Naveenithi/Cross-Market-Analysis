@@ -1,10 +1,10 @@
 import pandas as pd
 import streamlit as st
+from urllib.error import URLError
 
 # -----------------------------
-# GitHub CSV URLs
+# GitHub CSV URLs (raw)
 # -----------------------------
-# Replace 'your-username' and 'your-repo' with your GitHub info
 GITHUB_BASE = "https://raw.githubusercontent.com/your-username/your-repo/main/"
 
 CSV_PATHS = {
@@ -17,23 +17,29 @@ CSV_PATHS = {
 # Cached CSV loader
 # -----------------------------
 @st.cache_data
-def load_csv(file_url, usecols=None, rename_map=None):
+def load_csv(file_url, local_path=None, usecols=None, rename_map=None):
     """
-    Load CSV from GitHub (or URL) and optionally select columns and rename them.
-
+    Load CSV from URL (GitHub) or local fallback.
+    
     Parameters:
     - file_url (str): URL to CSV
-    - usecols (list of str): Columns to read
-    - rename_map (dict): Columns to rename
-
+    - local_path (str): fallback local path if URL fails
+    - usecols (list): columns to read
+    - rename_map (dict): columns to rename
+    
     Returns:
     - pd.DataFrame
     """
     try:
         df = pd.read_csv(file_url, usecols=usecols)
-    except ValueError as e:
-        st.warning(f"Column mismatch detected: {e}\nLoading all columns instead.")
-        df = pd.read_csv(file_url)  # fallback
+        st.info(f"Loaded CSV from GitHub URL: {file_url}")
+    except (URLError, ValueError) as e:
+        st.warning(f"Could not load from GitHub URL: {e}")
+        if local_path:
+            st.info(f"Falling back to local CSV: {local_path}")
+            df = pd.read_csv(local_path, usecols=usecols)
+        else:
+            raise RuntimeError("No local fallback CSV provided.") from e
 
     if rename_map:
         df = df.rename(columns=rename_map)
@@ -51,13 +57,14 @@ page = st.sidebar.radio("Select Page:", ["Crypto Prices", "Oil Prices", "Stocks 
 # -----------------------------
 if page == "Crypto Prices":
     st.header("Cryptocurrency Prices")
-
+    
     crypto_df = load_csv(
         CSV_PATHS["crypto"],
+        local_path="crypto_prices.csv",
         usecols=["date", "coin_id", "price_usd"],
         rename_map={"coin_id": "symbol"}
     )
-
+    
     st.dataframe(crypto_df.head())
     st.line_chart(crypto_df.set_index("date")["price_usd"])
 
@@ -66,13 +73,14 @@ if page == "Crypto Prices":
 # -----------------------------
 elif page == "Oil Prices":
     st.header("Crude Oil Prices")
-
+    
     oil_df = load_csv(
         CSV_PATHS["oil"],
+        local_path="oil_prices.csv",
         usecols=["date", "close"],
         rename_map={"close": "oil_close"}
     )
-
+    
     st.dataframe(oil_df.head())
     st.line_chart(oil_df.set_index("date")["oil_close"])
 
@@ -81,21 +89,23 @@ elif page == "Oil Prices":
 # -----------------------------
 elif page == "Stocks vs Oil":
     st.header("Stock Prices vs Crude Oil")
-
+    
     stock_df = load_csv(
         CSV_PATHS["stocks"],
+        local_path="stocks.csv",
         usecols=["date", "close"],
         rename_map={"close": "stock_close"}
     )
-
+    
     oil_df = load_csv(
         CSV_PATHS["oil"],
+        local_path="oil_prices.csv",
         usecols=["date", "close"],
         rename_map={"close": "oil_close"}
     )
-
+    
     merged_df = pd.merge(stock_df, oil_df, on="date", how="inner")
-
+    
     st.dataframe(merged_df.head())
     st.line_chart(merged_df.set_index("date"))
 
