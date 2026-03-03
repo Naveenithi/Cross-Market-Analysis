@@ -158,17 +158,16 @@ elif page == "🧮 SQL Query Runner":
     for line in lines:
         stripped = line.strip()
 
-        # Skip empty lines
         if not stripped:
             continue
 
-        # If line starts with SELECT, start collecting
+        # Start query when SELECT appears
         if stripped.lower().startswith("select"):
             current_query = [line]
         elif current_query:
             current_query.append(line)
 
-        # If query ends with semicolon, save it
+        # End query when semicolon appears
         if current_query and stripped.endswith(";"):
             queries[f"Query {query_count}"] = "".join(current_query).strip()
             query_count += 1
