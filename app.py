@@ -98,14 +98,12 @@ if page == "📊 Filters & Data Exploration":
         (stocks_df["date"] <= pd.to_datetime(end_date))
     ]
 
-    # Pivot crypto
     crypto_pivot = crypto_filtered.pivot(
         index="date",
         columns="coin_id",
         values="price_usd"
     )
 
-    # Pivot stocks
     stocks_pivot = stocks_filtered.pivot(
         index="date",
         columns="ticker",
@@ -115,77 +113,94 @@ if page == "📊 Filters & Data Exploration":
     oil_filtered = oil_filtered.set_index("date")
     oil_filtered.rename(columns={"price_usd": "Oil_Price"}, inplace=True)
 
-    # Join like SQL INNER JOIN
     merged_df = crypto_pivot \
         .join(oil_filtered, how="inner") \
         .join(stocks_pivot, how="inner") \
         .sort_index()
 
-    # Metrics
     col1, col2, col3, col4 = st.columns(4)
 
     if "bitcoin" in merged_df.columns:
-        col1.metric("Bitcoin Avg",
-                    round(merged_df["bitcoin"].mean(), 2))
+        col1.metric("Bitcoin Avg", round(merged_df["bitcoin"].mean(), 2))
 
     if "Oil_Price" in merged_df.columns:
-        col2.metric("Oil Avg",
-                    round(merged_df["Oil_Price"].mean(), 2))
+        col2.metric("Oil Avg", round(merged_df["Oil_Price"].mean(), 2))
 
     if "^GSPC" in merged_df.columns:
-        col3.metric("S&P 500 Avg",
-                    round(merged_df["^GSPC"].mean(), 2))
+        col3.metric("S&P 500 Avg", round(merged_df["^GSPC"].mean(), 2))
 
     if "^NSEI" in merged_df.columns:
-        col4.metric("NIFTY Avg",
-                    round(merged_df["^NSEI"].mean(), 2))
+        col4.metric("NIFTY Avg", round(merged_df["^NSEI"].mean(), 2))
 
     st.subheader("Daily Market Snapshot")
     st.dataframe(merged_df)
 
 # ==================================================
-# PAGE 2 – SQL QUERY RUNNER
+# PAGE 2 – SQL QUERY RUNNER (LOAD ALL SELECTS)
 # ==================================================
 elif page == "🧮 SQL Query Runner":
 
-    st.header("Run Predefined SQL Queries")
+    st.header("Run SQL Queries From File")
 
-    queries = {
-        "Top 3 Cryptos by Market Cap":
-            "SELECT * FROM cryptocurrencies ORDER BY market_cap DESC LIMIT 3;",
+    # ----------------------------------------------
+    # LOAD ONLY SELECT QUERIES FROM SQL FILE
+    # ----------------------------------------------
+    def load_select_queries(filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as file:
+                sql_script = file.read()
+        except FileNotFoundError:
+            return {}
 
-        "Highest Bitcoin Price":
-            """
-            SELECT MAX(price_usd) AS highest_bitcoin_price
-            FROM crypto_prices
-            WHERE coin_id='bitcoin';
-            """,
+        statements = sql_script.split(";")
+        queries = {}
+        count = 1
 
-        "Highest Oil Price":
-            "SELECT MAX(price_usd) AS highest_oil_price FROM oil_prices;",
+        for stmt in statements:
+            cleaned = stmt.strip().lower()
 
-        "Highest NASDAQ Close":
-            """
-            SELECT MAX(close) AS highest_nasdaq
-            FROM stock_prices
-            WHERE ticker='^IXIC';
-            """
-    }
+            if cleaned.startswith("select"):
+                queries[f"Query {count}"] = stmt.strip()
+                count += 1
 
-    selected_query = st.selectbox("Choose Query", list(queries.keys()))
+        return queries
 
-    if st.button("Run Query"):
-        conn = get_connection()
-        result_df = pd.read_sql(queries[selected_query], conn)
-        conn.close()
-        st.dataframe(result_df)
+    # 🔹 Change filename if needed
+    query_options = load_select_queries("Cross Market Data.sql")
+
+    if not query_options:
+        st.error("No SELECT queries found or SQL file missing.")
+    else:
+        selected_query = st.selectbox(
+            "Choose Query",
+            list(query_options.keys())
+        )
+
+        st.subheader("SQL Code")
+        st.code(query_options[selected_query], language="sql")
+
+        if st.button("Run Query"):
+            conn = get_connection()
+
+            try:
+                result_df = pd.read_sql(
+                    query_options[selected_query],
+                    conn
+                )
+                st.success("Query executed successfully")
+                st.dataframe(result_df)
+
+            except Exception as e:
+                st.error(f"Error running query: {e}")
+
+            conn.close()
 
 # ==================================================
 # PAGE 3 – TOP 3 CRYPTO ANALYSIS
 # ==================================================
 elif page == "🚀 Top 3 Crypto Analysis":
 
-    st.header("Top 3 Crypto Daily Analysis")
+    st.header("Crypto Daily Analysis")
 
     coins = crypto_df["coin_id"].unique()
     selected_coin = st.selectbox("Select Coin", coins)
