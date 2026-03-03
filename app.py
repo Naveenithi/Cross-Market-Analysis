@@ -145,35 +145,35 @@ elif page == "🧮 SQL Query Runner":
     # LOAD SELECT QUERIES FROM queries.sql
     # --------------------------------------------------
     def load_select_queries(filepath):
-    try:
-        with open(filepath, "r", encoding="utf-8") as file:
-            lines = file.readlines()
-    except FileNotFoundError:
-        return {}
+        try:
+            with open(filepath, "r", encoding="utf-8") as file:
+                lines = file.readlines()
+        except FileNotFoundError:
+            return {}
 
-    queries = {}
-    current_query = []
-    query_count = 1
+        queries = {}
+        current_query = []
+        query_count = 1
 
-    for line in lines:
-        stripped = line.strip()
+        for line in lines:
+            stripped = line.strip()
 
-        if not stripped:
-            continue
+            if not stripped:
+                continue
 
-        # Start query when SELECT appears
-        if stripped.lower().startswith("select"):
-            current_query = [line]
-        elif current_query:
-            current_query.append(line)
+            # Start query when SELECT appears
+            if stripped.lower().startswith("select"):
+                current_query = [line]
+            elif current_query:
+                current_query.append(line)
 
-        # End query when semicolon appears
-        if current_query and stripped.endswith(";"):
-            queries[f"Query {query_count}"] = "".join(current_query).strip()
-            query_count += 1
-            current_query = []
+            # End query when semicolon appears
+            if current_query and stripped.endswith(";"):
+                queries[f"Query {query_count}"] = "".join(current_query).strip()
+                query_count += 1
+                current_query = []
 
-    return queries
+        return queries
 
     query_options = load_select_queries("queries.sql")
 
@@ -251,7 +251,6 @@ elif page == "🧮 SQL Query Runner":
                     st.error(f"Error running query: {e}")
 
                 conn.close()
-
 # ==================================================
 # PAGE 3 – TOP 3 CRYPTO ANALYSIS
 # ==================================================
