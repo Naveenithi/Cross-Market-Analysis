@@ -135,123 +135,68 @@ if page == "📊 Filters & Data Exploration":
     st.dataframe(merged_df)
 
 # ==================================================
-# PAGE 2 – PROFESSIONAL SQL QUERY RUNNER
+# PAGE 2 – SQL QUERY RESULTS (NO SEARCH, NO CUSTOM)
 # ==================================================
 elif page == "🧮 SQL Query Runner":
 
-    st.header("📂 SQL Query Explorer")
+    st.header("📊 Predefined SQL Analysis")
 
-    # --------------------------------------------------
-    # LOAD SELECT QUERIES FROM queries.sql
-    # --------------------------------------------------
     def load_select_queries(filepath):
         try:
             with open(filepath, "r", encoding="utf-8") as file:
                 lines = file.readlines()
         except FileNotFoundError:
-            return {}
+            return []
 
-        queries = {}
+        queries = []
         current_query = []
-        query_count = 1
+        current_title = None
 
         for line in lines:
             stripped = line.strip()
 
-            if not stripped:
-                continue
+            # Capture heading
+            if stripped.startswith("--"):
+                current_title = stripped.replace("--", "").strip()
 
-            # Start query when SELECT appears
-            if stripped.lower().startswith("select"):
+            # Capture SELECT queries
+            elif stripped.lower().startswith("select"):
                 current_query = [line]
+
             elif current_query:
                 current_query.append(line)
 
-            # End query when semicolon appears
+            # End query at semicolon
             if current_query and stripped.endswith(";"):
-                queries[f"Query {query_count}"] = "".join(current_query).strip()
-                query_count += 1
+                queries.append({
+                    "title": current_title if current_title else "Untitled Query",
+                    "sql": "".join(current_query).strip()
+                })
                 current_query = []
 
         return queries
 
-    query_options = load_select_queries("queries.sql")
+    queries = load_select_queries("queries.sql")
 
-    if not query_options:
+    if not queries:
         st.error("No SELECT queries found or SQL file missing.")
     else:
+        conn = get_connection()
 
-        search = st.text_input("🔍 Search Query")
+        for i, query in enumerate(queries):
+            st.divider()
+            st.subheader(query["title"])
+            st.code(query["sql"], language="sql")
 
-        filtered_queries = {
-            k: v for k, v in query_options.items()
-            if search.lower() in k.lower()
-        }
-
-        selected_query = st.selectbox(
-            "Choose Query",
-            list(filtered_queries.keys())
-        )
-
-        st.divider()
-        st.subheader("📝 SQL Code")
-        st.code(filtered_queries[selected_query], language="sql")
-
-        col1, col2 = st.columns(2)
-
-        # RUN PREDEFINED QUERY
-        if col1.button("▶ Run Selected Query"):
-
-            conn = get_connection()
-
-            try:
-                result_df = pd.read_sql(
-                    filtered_queries[selected_query],
-                    conn
-                )
-
-                st.success("Query executed successfully")
-                st.dataframe(result_df)
-
-                csv = result_df.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    "⬇ Download Result as CSV",
-                    csv,
-                    "query_result.csv",
-                    "text/csv"
-                )
-
-            except Exception as e:
-                st.error(f"Error running query: {e}")
-
-            conn.close()
-
-        # CUSTOM SQL
-        st.divider()
-        st.subheader("✏ Run Custom SQL")
-
-        custom_sql = st.text_area(
-            "Write your own SELECT query:",
-            height=150
-        )
-
-        if col2.button("▶ Run Custom Query"):
-
-            if not custom_sql.strip().lower().startswith("select"):
-                st.error("Only SELECT queries are allowed.")
-            else:
-                conn = get_connection()
-
+            if st.button(f"▶ Run Query {i+1}"):
                 try:
-                    result_df = pd.read_sql(custom_sql, conn)
-                    st.success("Custom query executed successfully")
+                    result_df = pd.read_sql(query["sql"], conn)
+                    st.success("Query executed successfully")
                     st.dataframe(result_df)
-
                 except Exception as e:
-                    st.error(f"Error running query: {e}")
+                    st.error(f"Error: {e}")
 
-                conn.close()
-# ==================================================
+        conn.close()# ==================================================
 # PAGE 3 – TOP 3 CRYPTO ANALYSIS
 # ==================================================
 elif page == "🚀 Top 3 Crypto Analysis":
