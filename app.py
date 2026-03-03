@@ -166,7 +166,7 @@ elif page == "🧮 SQL Query Runner":
 
         return queries
 
-    query_options = load_select_queries("Cross Market Data.sql")
+    query_options = load_named_queries("queries.sql")
 
     if not query_options:
         st.error("No SELECT queries found or SQL file missing.")
