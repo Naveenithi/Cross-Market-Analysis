@@ -6,7 +6,6 @@ import mysql.connector
 # PAGE CONFIG
 # --------------------------------------------------
 st.set_page_config(page_title="Cross Market Analysis", layout="wide")
-
 st.title("📊 Cross-Market Analysis: Crypto, Oil & Stocks")
 
 # --------------------------------------------------
@@ -142,9 +141,9 @@ elif page == "🧮 SQL Query Runner":
 
     st.header("📂 SQL Query Explorer")
 
-    # ----------------------------------------------
-    # LOAD SELECT QUERIES FROM FILE
-    # ----------------------------------------------
+    # --------------------------------------------------
+    # LOAD SELECT QUERIES FROM queries.sql
+    # --------------------------------------------------
     def load_select_queries(filepath):
         try:
             with open(filepath, "r", encoding="utf-8") as file:
@@ -160,19 +159,18 @@ elif page == "🧮 SQL Query Runner":
             cleaned = stmt.strip().lower()
 
             if cleaned.startswith("select"):
-                title = f"Query {count} - {stmt.strip().split()[1].upper()}"
+                title = f"Query {count}"
                 queries[title] = stmt.strip()
                 count += 1
 
         return queries
 
-    query_options = load_named_queries("queries.sql")
+    query_options = load_select_queries("queries.sql")
 
     if not query_options:
         st.error("No SELECT queries found or SQL file missing.")
     else:
 
-        # 🔍 Search box
         search = st.text_input("🔍 Search Query")
 
         filtered_queries = {
@@ -186,15 +184,12 @@ elif page == "🧮 SQL Query Runner":
         )
 
         st.divider()
-
         st.subheader("📝 SQL Code")
         st.code(filtered_queries[selected_query], language="sql")
 
         col1, col2 = st.columns(2)
 
-        # ------------------------------------------
         # RUN PREDEFINED QUERY
-        # ------------------------------------------
         if col1.button("▶ Run Selected Query"):
 
             conn = get_connection()
@@ -208,7 +203,6 @@ elif page == "🧮 SQL Query Runner":
                 st.success("Query executed successfully")
                 st.dataframe(result_df)
 
-                # Download option
                 csv = result_df.to_csv(index=False).encode("utf-8")
                 st.download_button(
                     "⬇ Download Result as CSV",
@@ -222,9 +216,7 @@ elif page == "🧮 SQL Query Runner":
 
             conn.close()
 
-        # ------------------------------------------
-        # CUSTOM SQL RUNNER
-        # ------------------------------------------
+        # CUSTOM SQL
         st.divider()
         st.subheader("✏ Run Custom SQL")
 
