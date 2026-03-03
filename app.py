@@ -135,20 +135,20 @@ if page == "📊 Filters & Data Exploration":
     st.dataframe(merged_df)
 
 # ==================================================
-# PAGE 2 – SQL QUERY RESULTS (NO SEARCH, NO CUSTOM)
+# PAGE 2 – SQL QUERY DROPDOWN RUNNER
 # ==================================================
 elif page == "🧮 SQL Query Runner":
 
-    st.header("📊 Predefined SQL Analysis")
+    st.header("📊 SQL Query Explorer")
 
     def load_select_queries(filepath):
         try:
             with open(filepath, "r", encoding="utf-8") as file:
                 lines = file.readlines()
         except FileNotFoundError:
-            return []
+            return {}
 
-        queries = []
+        queries = {}
         current_query = []
         current_title = None
 
@@ -159,44 +159,60 @@ elif page == "🧮 SQL Query Runner":
             if stripped.startswith("--"):
                 current_title = stripped.replace("--", "").strip()
 
-            # Capture SELECT queries
+            # Start SELECT
             elif stripped.lower().startswith("select"):
                 current_query = [line]
 
             elif current_query:
                 current_query.append(line)
 
-            # End query at semicolon
+            # End query
             if current_query and stripped.endswith(";"):
-                queries.append({
-                    "title": current_title if current_title else "Untitled Query",
-                    "sql": "".join(current_query).strip()
-                })
+                title = current_title if current_title else f"Query {len(queries)+1}"
+                queries[title] = "".join(current_query).strip()
                 current_query = []
 
         return queries
 
-    queries = load_select_queries("queries.sql")
+    query_options = load_select_queries("queries.sql")
 
-    if not queries:
+    if not query_options:
         st.error("No SELECT queries found or SQL file missing.")
     else:
-        conn = get_connection()
 
-        for i, query in enumerate(queries):
-            st.divider()
-            st.subheader(query["title"])
-            st.code(query["sql"], language="sql")
+        selected_query = st.selectbox(
+            "Choose a Query",
+            list(query_options.keys())
+        )
 
-            if st.button(f"▶ Run Query {i+1}"):
-                try:
-                    result_df = pd.read_sql(query["sql"], conn)
-                    st.success("Query executed successfully")
-                    st.dataframe(result_df)
-                except Exception as e:
-                    st.error(f"Error: {e}")
+        st.subheader("📝 SQL Code")
+        st.code(query_options[selected_query], language="sql")
 
-        conn.close()# ==================================================
+        if st.button("▶ Run Query"):
+            conn = get_connection()
+
+            try:
+                result_df = pd.read_sql(
+                    query_options[selected_query],
+                    conn
+                )
+
+                st.success("Query executed successfully")
+                st.dataframe(result_df)
+
+                csv = result_df.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "⬇ Download Result as CSV",
+                    csv,
+                    "query_result.csv",
+                    "text/csv"
+                )
+
+            except Exception as e:
+                st.error(f"Error running query: {e}")
+
+            conn.close()
+# ==================================================
 # PAGE 3 – TOP 3 CRYPTO ANALYSIS
 # ==================================================
 elif page == "🚀 Top 3 Crypto Analysis":
