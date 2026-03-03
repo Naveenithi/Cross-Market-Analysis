@@ -136,14 +136,14 @@ if page == "📊 Filters & Data Exploration":
     st.dataframe(merged_df)
 
 # ==================================================
-# PAGE 2 – SQL QUERY RUNNER (LOAD ALL SELECTS)
+# PAGE 2 – PROFESSIONAL SQL QUERY RUNNER
 # ==================================================
 elif page == "🧮 SQL Query Runner":
 
-    st.header("Run SQL Queries From File")
+    st.header("📂 SQL Query Explorer")
 
     # ----------------------------------------------
-    # LOAD ONLY SELECT QUERIES FROM SQL FILE
+    # LOAD SELECT QUERIES FROM FILE
     # ----------------------------------------------
     def load_select_queries(filepath):
         try:
@@ -160,40 +160,95 @@ elif page == "🧮 SQL Query Runner":
             cleaned = stmt.strip().lower()
 
             if cleaned.startswith("select"):
-                queries[f"Query {count}"] = stmt.strip()
+                title = f"Query {count} - {stmt.strip().split()[1].upper()}"
+                queries[title] = stmt.strip()
                 count += 1
 
         return queries
 
-    # 🔹 Change filename if needed
     query_options = load_select_queries("Cross Market Data.sql")
 
     if not query_options:
         st.error("No SELECT queries found or SQL file missing.")
     else:
+
+        # 🔍 Search box
+        search = st.text_input("🔍 Search Query")
+
+        filtered_queries = {
+            k: v for k, v in query_options.items()
+            if search.lower() in k.lower()
+        }
+
         selected_query = st.selectbox(
             "Choose Query",
-            list(query_options.keys())
+            list(filtered_queries.keys())
         )
 
-        st.subheader("SQL Code")
-        st.code(query_options[selected_query], language="sql")
+        st.divider()
 
-        if st.button("Run Query"):
+        st.subheader("📝 SQL Code")
+        st.code(filtered_queries[selected_query], language="sql")
+
+        col1, col2 = st.columns(2)
+
+        # ------------------------------------------
+        # RUN PREDEFINED QUERY
+        # ------------------------------------------
+        if col1.button("▶ Run Selected Query"):
+
             conn = get_connection()
 
             try:
                 result_df = pd.read_sql(
-                    query_options[selected_query],
+                    filtered_queries[selected_query],
                     conn
                 )
+
                 st.success("Query executed successfully")
                 st.dataframe(result_df)
+
+                # Download option
+                csv = result_df.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "⬇ Download Result as CSV",
+                    csv,
+                    "query_result.csv",
+                    "text/csv"
+                )
 
             except Exception as e:
                 st.error(f"Error running query: {e}")
 
             conn.close()
+
+        # ------------------------------------------
+        # CUSTOM SQL RUNNER
+        # ------------------------------------------
+        st.divider()
+        st.subheader("✏ Run Custom SQL")
+
+        custom_sql = st.text_area(
+            "Write your own SELECT query:",
+            height=150
+        )
+
+        if col2.button("▶ Run Custom Query"):
+
+            if not custom_sql.strip().lower().startswith("select"):
+                st.error("Only SELECT queries are allowed.")
+            else:
+                conn = get_connection()
+
+                try:
+                    result_df = pd.read_sql(custom_sql, conn)
+                    st.success("Custom query executed successfully")
+                    st.dataframe(result_df)
+
+                except Exception as e:
+                    st.error(f"Error running query: {e}")
+
+                conn.close()
 
 # ==================================================
 # PAGE 3 – TOP 3 CRYPTO ANALYSIS
