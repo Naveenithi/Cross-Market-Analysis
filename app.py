@@ -145,25 +145,36 @@ elif page == "🧮 SQL Query Runner":
     # LOAD SELECT QUERIES FROM queries.sql
     # --------------------------------------------------
     def load_select_queries(filepath):
-        try:
-            with open(filepath, "r", encoding="utf-8") as file:
-                sql_script = file.read()
-        except FileNotFoundError:
-            return {}
+    try:
+        with open(filepath, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+    except FileNotFoundError:
+        return {}
 
-        statements = sql_script.split(";")
-        queries = {}
-        count = 1
+    queries = {}
+    current_query = []
+    query_count = 1
 
-        for stmt in statements:
-            cleaned = stmt.strip().lower()
+    for line in lines:
+        stripped = line.strip()
 
-            if cleaned.startswith("select"):
-                title = f"Query {count}"
-                queries[title] = stmt.strip()
-                count += 1
+        # Skip empty lines
+        if not stripped:
+            continue
 
-        return queries
+        # If line starts with SELECT, start collecting
+        if stripped.lower().startswith("select"):
+            current_query = [line]
+        elif current_query:
+            current_query.append(line)
+
+        # If query ends with semicolon, save it
+        if current_query and stripped.endswith(";"):
+            queries[f"Query {query_count}"] = "".join(current_query).strip()
+            query_count += 1
+            current_query = []
+
+    return queries
 
     query_options = load_select_queries("queries.sql")
 
