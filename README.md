@@ -6,8 +6,7 @@ A full-stack data analytics project that analyzes relationships between Cryptocu
 
 ## 🚀 Live Application
 
-🔗 Live App: [https://your-app-name.streamlit.app](https://cross-market-analysis-l6blposhge5nfjzugvb4xr.streamlit.app/)  
-(Replace with your actual Streamlit link)
+🔗 Live App: [https://your-app-name.streamlit.app](https://cross-market-analysis-l6blposhge5nfjzugvb4xr.streamlit.app/)
 
 ---
 
