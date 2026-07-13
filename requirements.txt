@@ -1,5 +1,6 @@
-streamlit
-pandas
-mysql-connector-python
-plotly
-sqlalchemy
+streamlit==1.49.0
+pandas==2.3.2
+plotly==6.3.0
+sqlalchemy==2.0.43
+pymysql==1.1.1
+cryptography==45.0.6
