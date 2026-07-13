@@ -42,9 +42,9 @@ def load_data():
         FROM stock_prices
     """
 
-    crypto_df = pd.read_sql(crypto_query, engine)
-    oil_df = pd.read_sql(oil_query, engine)
-    stocks_df = pd.read_sql(stock_query, engine)
+    crypto_df = pd.read_sql(crypto_query, conn)
+    oil_df = pd.read_sql(oil_query, conn)
+    stocks_df = pd.read_sql(stock_query, conn)
 
     conn.close()
 
